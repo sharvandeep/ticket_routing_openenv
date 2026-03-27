@@ -7,6 +7,9 @@ app = FastAPI()
 
 env = TicketEnv()
 
+@app.get("/")
+def home():
+    return {"message": "Ticket Routing OpenEnv is running"}
 
 @app.get("/reset")
 def reset():
