@@ -1,3 +1,13 @@
+---
+title: Ticket Routing OpenEnv
+emoji: 🤖
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Ticket Routing OpenEnv Environment
 
 ## Description
@@ -20,15 +30,14 @@ This project simulates a real-world customer support ticket routing system where
 - task_type
 
 ## Endpoints
-- /reset → start new episode
-- /step → agent action
-- /state → current state
-- /tasks → available tasks
-- /grader → evaluate performance
-- /baseline → baseline agent score
+- /reset → start new episode  
+- /step → agent action  
+- /state → current state  
+- /tasks → available tasks  
+- /grader → evaluate performance  
+- /baseline → baseline agent score  
 
-## Setup
+## Setup (Local)
 ```bash
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-```
