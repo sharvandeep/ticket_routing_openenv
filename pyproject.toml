@@ -1,0 +1,12 @@
+[project]
+name = "ticket-routing-openenv"
+version = "0.1.0"
+description = "Customer support ticket routing OpenEnv environment"
+authors = [
+    { name="Sharvandeep", email="sharvandeepk@gmail.com" }
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic"
+]
