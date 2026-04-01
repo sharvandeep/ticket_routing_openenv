@@ -10,4 +10,4 @@ def grade(action, correct):
     if action["escalation"] == correct["escalation"]:
         score += 0.3
 
-    return score
+    return score    

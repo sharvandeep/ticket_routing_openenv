@@ -11,7 +11,7 @@ env = TicketEnv()
 def home():
     return {"message": "Ticket Routing OpenEnv is running"}
 
-@app.get("/reset")
+@app.post("/reset")
 def reset():
     return env.reset()
 

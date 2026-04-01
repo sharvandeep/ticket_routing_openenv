@@ -1,10 +1,16 @@
 import requests
+import os
 
-BASE_URL = "https://sharvandeep-ticket-routing-openenv.hf.space"
+# Read from environment variables
+API_BASE_URL = "https://sharvandeep-ticket-routing-openenv.hf.space"
+MODEL_NAME = os.getenv("gpt-4o-mini")
+HF_TOKEN = os.getenv("hf_xxxxxxxxxxx") 
+
+
 
 def get_action(ticket_text):
     """
-    Simple rule-based agent (baseline)
+    Simple rule-based baseline agent
     """
     text = ticket_text.lower()
 
@@ -25,7 +31,7 @@ def run():
     steps = 0
 
     # Start environment
-    response = requests.get(f"{BASE_URL}/reset")
+    response = requests.get(f"{API_BASE_URL}/reset")
     data = response.json()
 
     done = False
@@ -35,7 +41,7 @@ def run():
 
         action = get_action(ticket_text)
 
-        step_response = requests.post(f"{BASE_URL}/step", json=action)
+        step_response = requests.post(f"{API_BASE_URL}/step", json=action)
         result = step_response.json()
 
         reward = result["reward"]
