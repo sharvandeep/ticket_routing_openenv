@@ -25,8 +25,8 @@ client = OpenAI(
 def normalize_action(action):
     dept_map = {
         "billing": "billing",
-        "technical support": "technical",
         "technical": "technical",
+        "technical support": "technical",
         "account": "account",
         "user accounts": "account",
         "customer support": "account",
@@ -57,41 +57,55 @@ def normalize_action(action):
 # =========================
 
 def get_action(ticket_text):
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{
-                "role": "user",
-                "content": f"""
-Classify this ticket STRICTLY using only these values:
-Use ONLY these exact values. No variations. Lowercase only.
-department: billing | technical | account | general
-priority: low | medium | high
-escalation: yes | no
+    prompt = f"""
+You are a STRICT customer support classifier.
 
-Return ONLY JSON.
+You MUST ONLY use these exact values (lowercase only):
+
+department: billing | technical | account | general  
+priority: low | medium | high  
+escalation: yes | no  
+
+Return ONLY valid JSON in this format:
+{{
+  "department": "...",
+  "priority": "...",
+  "escalation": "..."
+}}
+
+Do NOT add explanations.
+Do NOT use extra words like "support", "service", "immediate".
 
 Ticket: {ticket_text}
 """
-            }],
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
             temperature=0
         )
 
         content = response.choices[0].message.content.strip()
 
+        # Extract JSON safely
         start = content.find("{")
         end = content.rfind("}") + 1
 
         if start != -1 and end != -1:
-            return json.loads(content[start:end])
+            json_str = content[start:end]
+            return json.loads(json_str)
 
-    except:
-        pass
+    except Exception as e:
+        print("LLM error:", e)
 
-    # 🔥 STRONG RULE-BASED (backup)
+    # =========================
+    # RULE-BASED FALLBACK (STRONG)
+    # =========================
+
     text = ticket_text.lower()
 
-    if "charged" in text:
+    if "charged" in text or "payment" in text or "refund" in text:
         return {"department": "billing", "priority": "high", "escalation": "yes"}
 
     elif "password" in text or "login" in text:
@@ -103,11 +117,9 @@ Ticket: {ticket_text}
     elif "buffering" in text or "slow" in text or "loading" in text:
         return {"department": "technical", "priority": "medium", "escalation": "no"}
 
-    elif "refund" in text or "payment" in text:
-        return {"department": "billing", "priority": "medium", "escalation": "yes"}
-
     else:
         return {"department": "general", "priority": "low", "escalation": "no"}
+
 # =========================
 # RUN EPISODE
 # =========================
@@ -118,6 +130,11 @@ def run():
 
     # Start environment
     response = requests.post(f"{ENV_URL}/reset")
+
+    if response.status_code != 200:
+        print("Failed to reset environment")
+        return
+
     data = response.json()
 
     if not data or "ticket_text" not in data:
@@ -133,6 +150,11 @@ def run():
         action = normalize_action(raw_action)
 
         step_response = requests.post(f"{ENV_URL}/step", json=action)
+
+        if step_response.status_code != 200:
+            print("Step API failed")
+            return
+
         result = step_response.json()
 
         reward = result["reward"]
