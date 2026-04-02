@@ -53,28 +53,25 @@ def normalize_action(action):
     }
 
 # =========================
-# LLM AGENT
+# LLM + RULE HYBRID AGENT
 # =========================
 
 def get_action(ticket_text):
     prompt = f"""
 You are a STRICT customer support classifier.
 
-You MUST ONLY use these exact values (lowercase only):
+ONLY use these exact values (lowercase only):
 
 department: billing | technical | account | general  
 priority: low | medium | high  
 escalation: yes | no  
 
-Return ONLY valid JSON in this format:
+Return ONLY JSON:
 {{
   "department": "...",
   "priority": "...",
   "escalation": "..."
 }}
-
-Do NOT add explanations.
-Do NOT use extra words like "support", "service", "immediate".
 
 Ticket: {ticket_text}
 """
@@ -88,19 +85,46 @@ Ticket: {ticket_text}
 
         content = response.choices[0].message.content.strip()
 
-        # Extract JSON safely
+        # Extract JSON
         start = content.find("{")
         end = content.rfind("}") + 1
 
         if start != -1 and end != -1:
-            json_str = content[start:end]
-            return json.loads(json_str)
+            action = json.loads(content[start:end])
+
+            # =========================
+            # 🔥 SMART CORRECTION LAYER
+            # =========================
+
+            text = ticket_text.lower()
+
+            if "charged" in text or "payment" in text or "refund" in text:
+                action["department"] = "billing"
+                action["priority"] = "high"
+                action["escalation"] = "yes"
+
+            elif "password" in text or "login" in text:
+                action["department"] = "technical"
+                action["priority"] = "high"
+                action["escalation"] = "yes"
+
+            elif "username" in text or "email" in text or "account" in text:
+                action["department"] = "account"
+                action["priority"] = "low"
+                action["escalation"] = "no"
+
+            elif "buffering" in text or "slow" in text or "loading" in text:
+                action["department"] = "technical"
+                action["priority"] = "medium"
+                action["escalation"] = "no"
+
+            return action
 
     except Exception as e:
         print("LLM error:", e)
 
     # =========================
-    # RULE-BASED FALLBACK (STRONG)
+    # 🔥 FULL RULE FALLBACK
     # =========================
 
     text = ticket_text.lower()
@@ -128,7 +152,6 @@ def run():
     total_reward = 0
     steps = 0
 
-    # Start environment
     response = requests.post(f"{ENV_URL}/reset")
 
     if response.status_code != 200:
