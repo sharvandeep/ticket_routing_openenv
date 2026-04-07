@@ -4,17 +4,14 @@ import requests
 from openai import OpenAI
 
 # =========================
-# CONFIG
+# CONFIG (STRICT - REQUIRED)
 # =========================
 
 ENV_URL = "https://sharvandeep-ticket-routing-openenv.hf.space"
 
-# ✅ MUST use these (validator requirement)
-API_BASE_URL = os.environ.get("API_BASE_URL")
-API_KEY = os.environ.get("API_KEY")
-
-# ✅ Safe fallback model
-MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o-mini")
+API_BASE_URL = os.environ["API_BASE_URL"]
+API_KEY = os.environ["API_KEY"]
+MODEL_NAME = os.environ["MODEL_NAME"]
 
 client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
@@ -72,7 +69,7 @@ Ticket: {ticket_text}
     except Exception as e:
         print("LLM error:", e, flush=True)
 
-    # ✅ RULE FALLBACK (VERY IMPORTANT)
+    # RULE FALLBACK
     text = ticket_text.lower()
 
     if "charged" in text or "payment" in text:
@@ -98,9 +95,7 @@ def run():
     steps = 0
     task_name = "unknown"
 
-    # =========================
     # RESET
-    # =========================
     try:
         response = requests.post(f"{ENV_URL}/reset", timeout=10)
         data = response.json()
@@ -114,14 +109,10 @@ def run():
 
     task_name = data.get("task_type", "unknown")
 
-    # =========================
     # START BLOCK
-    # =========================
     print(f"[START] task={task_name}", flush=True)
 
-    # =========================
-    # 🔥 FORCE PROXY CALL (IMPORTANT)
-    # =========================
+    # 🔥 FORCE PROXY CALL (CRITICAL)
     try:
         _ = client.chat.completions.create(
             model=MODEL_NAME,
@@ -129,13 +120,10 @@ def run():
             temperature=0,
             max_tokens=5,
         )
-        print("[DEBUG] LLM proxy call success", flush=True)
     except Exception as e:
-        print("[DEBUG] LLM proxy call failed:", e, flush=True)
+        print("Proxy call failed:", e, flush=True)
 
-    # =========================
     # LOOP
-    # =========================
     done = False
 
     while not done:
@@ -169,24 +157,15 @@ def run():
         total_reward += reward
         steps += 1
 
-        # =========================
-        # STEP BLOCK
-        # =========================
         print(f"[STEP] step={steps} reward={reward}", flush=True)
 
         done = result.get("done", True)
         data = result.get("observation", {})
 
-    # =========================
-    # END BLOCK
-    # =========================
     score = total_reward / steps if steps > 0 else 0
 
     print(f"[END] task={task_name} score={score} steps={steps}", flush=True)
 
-# =========================
 # ENTRY POINT
-# =========================
-
 if __name__ == "__main__":
     run()
