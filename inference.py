@@ -27,7 +27,7 @@ if OpenAI and API_BASE_URL and MODEL_NAME and HF_TOKEN:
             api_key=HF_TOKEN
         )
     except Exception as e:
-        print("Client init failed:", e)
+        print("Client init failed:", e, flush=True)
         client = None
 
 # =========================
@@ -88,9 +88,7 @@ Return ONLY JSON:
 Ticket: {ticket_text}
 """
 
-    # =========================
-    # TRY LLM
-    # =========================
+    # Try LLM
     if client:
         try:
             response = client.chat.completions.create(
@@ -106,42 +104,14 @@ Ticket: {ticket_text}
 
             if start != -1 and end != -1:
                 try:
-                    action = json.loads(content[start:end])
-                except json.JSONDecodeError:
-                    action = {}
-                else:
-                    # SMART CORRECTION
-                    text = ticket_text.lower()
-
-                    if "charged" in text or "payment" in text or "refund" in text:
-                        action["department"] = "billing"
-                        action["priority"] = "high"
-                        action["escalation"] = "yes"
-
-                    elif "password" in text or "login" in text:
-                        action["department"] = "technical"
-                        action["priority"] = "high"
-                        action["escalation"] = "yes"
-
-                    elif "username" in text or "email" in text or "account" in text:
-                        action["department"] = "account"
-                        action["priority"] = "low"
-                        action["escalation"] = "no"
-
-                    elif "buffering" in text or "slow" in text or "loading" in text:
-                        action["department"] = "technical"
-                        action["priority"] = "medium"
-                        action["escalation"] = "no"
-
-                    return action
+                    return json.loads(content[start:end])
+                except:
+                    pass
 
         except Exception as e:
-            print("LLM error:", e)
+            print("LLM error:", e, flush=True)
 
-    # =========================
-    # RULE-BASED FALLBACK
-    # =========================
-
+    # Rule fallback
     text = ticket_text.lower()
 
     if "charged" in text or "payment" in text or "refund" in text:
@@ -160,23 +130,29 @@ Ticket: {ticket_text}
         return {"department": "general", "priority": "low", "escalation": "no"}
 
 # =========================
-# RUN EPISODE (SAFE)
+# RUN EPISODE (VALIDATOR SAFE)
 # =========================
 
 def run():
     total_reward = 0
     steps = 0
+    task_name = "unknown"
 
     try:
         response = requests.post(f"{ENV_URL}/reset", timeout=10)
         data = response.json()
     except Exception as e:
-        print("Reset failed:", e)
+        print("Reset failed:", e, flush=True)
         return
 
     if not isinstance(data, dict) or "ticket_text" not in data:
-        print("Invalid reset response:", data)
+        print("Invalid reset response:", data, flush=True)
         return
+
+    task_name = data.get("task_type", "unknown")
+
+    # ✅ START BLOCK
+    print(f"[START] task={task_name}", flush=True)
 
     done = False
 
@@ -185,7 +161,7 @@ def run():
             ticket_text = data.get("ticket_text")
 
             if not ticket_text:
-                print("Missing ticket_text:", data)
+                print("Missing ticket_text:", data, flush=True)
                 break
 
             raw_action = get_action(ticket_text)
@@ -200,30 +176,27 @@ def run():
             result = step_response.json()
 
         except Exception as e:
-            print("Step failed:", e)
+            print("Step failed:", e, flush=True)
             break
 
         if not isinstance(result, dict) or "reward" not in result:
-            print("Invalid step response:", result)
+            print("Invalid step response:", result, flush=True)
             break
 
         reward = result.get("reward", 0)
         total_reward += reward
         steps += 1
 
-        print(f"[STEP] {steps}")
-        print(f"Ticket: {ticket_text}")
-        print(f"Action: {action}")
-        print(f"Reward: {reward}")
-        print("-" * 40)
+        # ✅ STEP BLOCK
+        print(f"[STEP] step={steps} reward={reward}", flush=True)
 
         done = result.get("done", True)
         data = result.get("observation", {})
 
-    if steps > 0:
-        print(f"\n[END] Final Score: {total_reward / steps}")
-    else:
-        print("\n[END] No steps executed")
+    score = total_reward / steps if steps > 0 else 0
+
+    # ✅ END BLOCK
+    print(f"[END] task={task_name} score={score} steps={steps}", flush=True)
 
 # =========================
 # ENTRY POINT
