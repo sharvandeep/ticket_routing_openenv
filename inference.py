@@ -1,7 +1,12 @@
 import os
 import json
-from openai import OpenAI
 import requests
+
+# Try importing OpenAI safely
+try:
+    from openai import OpenAI
+except:
+    OpenAI = None
 
 # =========================
 # CONFIG
@@ -13,10 +18,17 @@ API_BASE_URL = os.getenv("API_BASE_URL")
 MODEL_NAME = os.getenv("MODEL_NAME")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=HF_TOKEN
-)
+# Safe client init
+client = None
+if OpenAI and API_BASE_URL and MODEL_NAME and HF_TOKEN:
+    try:
+        client = OpenAI(
+            base_url=API_BASE_URL,
+            api_key=HF_TOKEN
+        )
+    except Exception as e:
+        print("Client init failed:", e)
+        client = None
 
 # =========================
 # NORMALIZATION
@@ -76,52 +88,55 @@ Return ONLY JSON:
 Ticket: {ticket_text}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
+    # =========================
+    # TRY LLM
+    # =========================
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0
+            )
 
-        content = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content.strip()
 
-        # Extract JSON safely
-        start = content.find("{")
-        end = content.rfind("}") + 1
+            start = content.find("{")
+            end = content.rfind("}") + 1
 
-        if start != -1 and end != -1:
-            action = json.loads(content[start:end])
+            if start != -1 and end != -1:
+                try:
+                    action = json.loads(content[start:end])
+                except json.JSONDecodeError:
+                    action = {}
+                else:
+                    # SMART CORRECTION
+                    text = ticket_text.lower()
 
-            # =========================
-            # SMART CORRECTION LAYER
-            # =========================
+                    if "charged" in text or "payment" in text or "refund" in text:
+                        action["department"] = "billing"
+                        action["priority"] = "high"
+                        action["escalation"] = "yes"
 
-            text = ticket_text.lower()
+                    elif "password" in text or "login" in text:
+                        action["department"] = "technical"
+                        action["priority"] = "high"
+                        action["escalation"] = "yes"
 
-            if "charged" in text or "payment" in text or "refund" in text:
-                action["department"] = "billing"
-                action["priority"] = "high"
-                action["escalation"] = "yes"
+                    elif "username" in text or "email" in text or "account" in text:
+                        action["department"] = "account"
+                        action["priority"] = "low"
+                        action["escalation"] = "no"
 
-            elif "password" in text or "login" in text:
-                action["department"] = "technical"
-                action["priority"] = "high"
-                action["escalation"] = "yes"
+                    elif "buffering" in text or "slow" in text or "loading" in text:
+                        action["department"] = "technical"
+                        action["priority"] = "medium"
+                        action["escalation"] = "no"
 
-            elif "username" in text or "email" in text or "account" in text:
-                action["department"] = "account"
-                action["priority"] = "low"
-                action["escalation"] = "no"
+                    return action
 
-            elif "buffering" in text or "slow" in text or "loading" in text:
-                action["department"] = "technical"
-                action["priority"] = "medium"
-                action["escalation"] = "no"
-
-            return action
-
-    except Exception as e:
-        print("LLM error:", e)
+        except Exception as e:
+            print("LLM error:", e)
 
     # =========================
     # RULE-BASED FALLBACK
@@ -143,21 +158,22 @@ Ticket: {ticket_text}
 
     else:
         return {"department": "general", "priority": "low", "escalation": "no"}
+
 # =========================
-# RUN EPISODE (SAFE VERSION)
+# RUN EPISODE (SAFE)
 # =========================
+
 def run():
     total_reward = 0
     steps = 0
 
     try:
-        response = requests.post(f"{ENV_URL}/reset")
+        response = requests.post(f"{ENV_URL}/reset", timeout=10)
         data = response.json()
     except Exception as e:
         print("Reset failed:", e)
         return
 
-    # ✅ SAFE CHECK
     if not isinstance(data, dict) or "ticket_text" not in data:
         print("Invalid reset response:", data)
         return
@@ -166,7 +182,6 @@ def run():
 
     while not done:
         try:
-            # ✅ SAFE ACCESS
             ticket_text = data.get("ticket_text")
 
             if not ticket_text:
@@ -176,14 +191,18 @@ def run():
             raw_action = get_action(ticket_text)
             action = normalize_action(raw_action)
 
-            step_response = requests.post(f"{ENV_URL}/step", json=action)
+            step_response = requests.post(
+                f"{ENV_URL}/step",
+                json=action,
+                timeout=10
+            )
+
             result = step_response.json()
 
         except Exception as e:
             print("Step failed:", e)
             break
 
-        # ✅ SAFE CHECK AGAIN
         if not isinstance(result, dict) or "reward" not in result:
             print("Invalid step response:", result)
             break
