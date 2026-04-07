@@ -1,6 +1,7 @@
 import os
 import json
 from openai import OpenAI
+import requests
 
 # =========================
 # CONFIG
@@ -145,12 +146,10 @@ Ticket: {ticket_text}
 # =========================
 # RUN EPISODE (SAFE VERSION)
 # =========================
-
 def run():
     total_reward = 0
     steps = 0
 
-    # RESET
     try:
         response = requests.post(f"{ENV_URL}/reset")
         data = response.json()
@@ -158,6 +157,7 @@ def run():
         print("Reset failed:", e)
         return
 
+    # ✅ SAFE CHECK
     if not isinstance(data, dict) or "ticket_text" not in data:
         print("Invalid reset response:", data)
         return
@@ -165,30 +165,30 @@ def run():
     done = False
 
     while not done:
-
-        # SAFE CHECK
-        if not isinstance(data, dict) or "ticket_text" not in data:
-            print("Missing ticket_text:", data)
-            break
-
-        ticket_text = data["ticket_text"]
-
-        raw_action = get_action(ticket_text)
-        action = normalize_action(raw_action)
-
-        # STEP
         try:
+            # ✅ SAFE ACCESS
+            ticket_text = data.get("ticket_text")
+
+            if not ticket_text:
+                print("Missing ticket_text:", data)
+                break
+
+            raw_action = get_action(ticket_text)
+            action = normalize_action(raw_action)
+
             step_response = requests.post(f"{ENV_URL}/step", json=action)
             result = step_response.json()
+
         except Exception as e:
             print("Step failed:", e)
             break
 
+        # ✅ SAFE CHECK AGAIN
         if not isinstance(result, dict) or "reward" not in result:
             print("Invalid step response:", result)
             break
 
-        reward = result["reward"]
+        reward = result.get("reward", 0)
         total_reward += reward
         steps += 1
 
