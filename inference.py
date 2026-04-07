@@ -1,4 +1,3 @@
-import requests
 import os
 import json
 from openai import OpenAI
@@ -85,7 +84,7 @@ Ticket: {ticket_text}
 
         content = response.choices[0].message.content.strip()
 
-        # Extract JSON
+        # Extract JSON safely
         start = content.find("{")
         end = content.rfind("}") + 1
 
@@ -93,7 +92,7 @@ Ticket: {ticket_text}
             action = json.loads(content[start:end])
 
             # =========================
-            # 🔥 SMART CORRECTION LAYER
+            # SMART CORRECTION LAYER
             # =========================
 
             text = ticket_text.lower()
@@ -124,7 +123,7 @@ Ticket: {ticket_text}
         print("LLM error:", e)
 
     # =========================
-    # 🔥 FULL RULE FALLBACK
+    # RULE-BASED FALLBACK
     # =========================
 
     text = ticket_text.lower()
@@ -143,42 +142,51 @@ Ticket: {ticket_text}
 
     else:
         return {"department": "general", "priority": "low", "escalation": "no"}
-
 # =========================
-# RUN EPISODE
+# RUN EPISODE (SAFE VERSION)
 # =========================
 
 def run():
     total_reward = 0
     steps = 0
 
-    response = requests.post(f"{ENV_URL}/reset")
-
-    if response.status_code != 200:
-        print("Failed to reset environment")
+    # RESET
+    try:
+        response = requests.post(f"{ENV_URL}/reset")
+        data = response.json()
+    except Exception as e:
+        print("Reset failed:", e)
         return
 
-    data = response.json()
-
-    if not data or "ticket_text" not in data:
-        print("Invalid response from environment")
+    if not isinstance(data, dict) or "ticket_text" not in data:
+        print("Invalid reset response:", data)
         return
 
     done = False
 
     while not done:
+
+        # SAFE CHECK
+        if not isinstance(data, dict) or "ticket_text" not in data:
+            print("Missing ticket_text:", data)
+            break
+
         ticket_text = data["ticket_text"]
 
         raw_action = get_action(ticket_text)
         action = normalize_action(raw_action)
 
-        step_response = requests.post(f"{ENV_URL}/step", json=action)
+        # STEP
+        try:
+            step_response = requests.post(f"{ENV_URL}/step", json=action)
+            result = step_response.json()
+        except Exception as e:
+            print("Step failed:", e)
+            break
 
-        if step_response.status_code != 200:
-            print("Step API failed")
-            return
-
-        result = step_response.json()
+        if not isinstance(result, dict) or "reward" not in result:
+            print("Invalid step response:", result)
+            break
 
         reward = result["reward"]
         total_reward += reward
@@ -190,10 +198,13 @@ def run():
         print(f"Reward: {reward}")
         print("-" * 40)
 
-        done = result["done"]
-        data = result["observation"]
+        done = result.get("done", True)
+        data = result.get("observation", {})
 
-    print(f"\n[END] Final Score: {total_reward / steps}")
+    if steps > 0:
+        print(f"\n[END] Final Score: {total_reward / steps}")
+    else:
+        print("\n[END] No steps executed")
 
 # =========================
 # ENTRY POINT
