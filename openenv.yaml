@@ -1,5 +1,9 @@
 spec_version: 1
 name: ticket-routing-openenv
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
 version: "1.0.0"
 description: >
   AI environment for customer support ticket routing. Agents must choose the
