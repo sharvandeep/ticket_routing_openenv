@@ -10,33 +10,58 @@ env = TicketEnv()
 TASKS = [
     {
         "id": "route_easy_chargeback",
+        "name": "Route: Duplicate charge",
         "task_type": "easy",
         "ticket_index": 0,
         "description": "Route a duplicate-charge billing complaint",
+        "difficulty": "easy",
+        "max_steps": 1,
+        "reward_range": [0.0, 1.0],
+        "grader": {"endpoint": "/grader", "method": "POST"},
     },
     {
         "id": "route_easy_login",
+        "name": "Route: Login/password",
         "task_type": "easy",
         "ticket_index": 1,
         "description": "Route a login/password complaint",
+        "difficulty": "easy",
+        "max_steps": 1,
+        "reward_range": [0.0, 1.0],
+        "grader": {"endpoint": "/grader", "method": "POST"},
     },
     {
         "id": "route_medium_buffering",
+        "name": "Route: Video buffering",
         "task_type": "medium",
         "ticket_index": 3,
         "description": "Route a technical performance complaint",
+        "difficulty": "medium",
+        "max_steps": 1,
+        "reward_range": [0.0, 1.0],
+        "grader": {"endpoint": "/grader", "method": "POST"},
     },
     {
         "id": "route_medium_email_update",
+        "name": "Route: Email update",
         "task_type": "medium",
         "ticket_index": 4,
         "description": "Route an email update complaint",
+        "difficulty": "medium",
+        "max_steps": 1,
+        "reward_range": [0.0, 1.0],
+        "grader": {"endpoint": "/grader", "method": "POST"},
     },
     {
         "id": "route_hard_account_change",
+        "name": "Route: Account change",
         "task_type": "hard",
         "ticket_index": 2,
         "description": "Route an account settings complaint",
+        "difficulty": "hard",
+        "max_steps": 1,
+        "reward_range": [0.0, 1.0],
+        "grader": {"endpoint": "/grader", "method": "POST"},
     },
 ]
 
@@ -75,12 +100,19 @@ def tasks():
         "tasks": [
             {
                 "id": task["id"],
+                "name": task.get("name", task["id"]),
                 "task_type": task["task_type"],
+                "difficulty": task.get("difficulty", task["task_type"]),
+                "max_steps": task.get("max_steps", 1),
+                "reward_range": task.get("reward_range", [0.0, 1.0]),
                 "description": task["description"],
-                "grader": {
-                    "endpoint": "/grader",
-                    "method": "POST"
-                }
+                "grader": task.get(
+                    "grader",
+                    {
+                        "endpoint": "/grader",
+                        "method": "POST",
+                    },
+                ),
             }
             for task in TASKS
         ]

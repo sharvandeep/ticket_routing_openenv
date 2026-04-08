@@ -1,57 +1,95 @@
-id: ticket-routing-openenv
-name: ticket-routing-env
-description: AI environment for customer support ticket routing
-version: 1.0
+spec_version: 1
+name: ticket-routing-openenv
+version: "1.0.0"
+description: >
+  AI environment for customer support ticket routing. Agents must choose the
+  correct department, priority, and escalation decision for each ticket.
+author: Sharvandeep
 
-observation:
+tasks:
+  - id: route_easy_chargeback
+    name: "Route: Duplicate charge"
+    description: Route a duplicate-charge billing complaint
+    difficulty: easy
+    max_steps: 1
+    reward_range: [0.0, 1.0]
+    grader:
+      endpoint: /grader
+      method: POST
+
+  - id: route_easy_login
+    name: "Route: Login/password"
+    description: Route a login/password complaint
+    difficulty: easy
+    max_steps: 1
+    reward_range: [0.0, 1.0]
+    grader:
+      endpoint: /grader
+      method: POST
+
+  - id: route_medium_buffering
+    name: "Route: Video buffering"
+    description: Route a technical performance complaint
+    difficulty: medium
+    max_steps: 1
+    reward_range: [0.0, 1.0]
+    grader:
+      endpoint: /grader
+      method: POST
+
+  - id: route_medium_email_update
+    name: "Route: Email update"
+    description: Route an email update complaint
+    difficulty: medium
+    max_steps: 1
+    reward_range: [0.0, 1.0]
+    grader:
+      endpoint: /grader
+      method: POST
+
+  - id: route_hard_account_change
+    name: "Route: Account change"
+    description: Route an account settings complaint
+    difficulty: hard
+    max_steps: 1
+    reward_range: [0.0, 1.0]
+    grader:
+      endpoint: /grader
+      method: POST
+
+action_space:
+  type: object
+  properties:
+    department:
+      type: string
+      description: Target department (billing/technical/account/general)
+    priority:
+      type: string
+      description: Ticket priority (low/medium/high)
+    escalation:
+      type: string
+      description: Escalation decision (yes/no)
+
+observation_space:
   type: object
   properties:
     ticket_text:
       type: string
     task_type:
       type: string
-
-action:
-  type: object
-  properties:
-    department:
-      type: string
-    priority:
-      type: string
-    escalation:
-      type: string
+      description: Difficulty bucket (easy/medium/hard)
 
 reward:
-  type: float
+  min: 0.0
+  max: 1.0
+  description: >
+    +0.4 for correct department, +0.3 for correct priority, +0.3 for correct
+    escalation. Total reward is clamped to [0.0, 1.0].
 
-
-tasks:
-  - id: route_easy_chargeback
-    description: Route a duplicate-charge billing complaint
-    grader:
-      endpoint: /grader
-      method: POST
-
-  - id: route_easy_login
-    description: Route a login/password complaint
-    grader:
-      endpoint: /grader
-      method: POST
-
-  - id: route_medium_buffering
-    description: Route a technical performance complaint
-    grader:
-      endpoint: /grader
-      method: POST
-
-  - id: route_medium_email_update
-    description: Route an email update complaint
-    grader:
-      endpoint: /grader
-      method: POST
-
-  - id: route_hard_account_change
-    description: Route an account settings complaint
-    grader:
-      endpoint: /grader
-      method: POST
+endpoints:
+  health: GET /
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  tasks: GET /tasks
+  grader: POST /grader
