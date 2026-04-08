@@ -113,7 +113,7 @@ def run():
     task_name = data.get("task_type", "unknown")
 
     # START
-    print(f"START task={task_name}", flush=True)
+    print(f"[START] task={task_name}", flush=True)
 
     done = False
 
@@ -140,7 +140,7 @@ def run():
         total_reward += reward
         steps += 1
 
-        print(f"STEP step={steps} reward={reward}", flush=True)
+        print(f"[STEP] step={steps} reward={reward}", flush=True)
 
         done = result.get("done", True)
         data = result.get("observation", {})
@@ -148,7 +148,7 @@ def run():
     raw_score = total_reward / steps if steps > 0 else 0.0
     score = 0.05 + (raw_score * 0.90)
 
-    print(f"END task={task_name} score={score} steps={steps}", flush=True)
+    print(f"[END] task={task_name} score={score} steps={steps}", flush=True)
 
 # ENTRY
 if __name__ == "__main__":
