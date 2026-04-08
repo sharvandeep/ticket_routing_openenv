@@ -7,6 +7,29 @@ app = FastAPI()
 
 env = TicketEnv()
 
+TASKS = [
+    {
+        "id": "route_easy_chargeback",
+        "task_type": "easy",
+        "ticket_index": 0,
+        "description": "Route a duplicate-charge billing complaint",
+    },
+    {
+        "id": "route_medium_buffering",
+        "task_type": "medium",
+        "ticket_index": 3,
+        "description": "Route a technical performance complaint",
+    },
+    {
+        "id": "route_hard_account_change",
+        "task_type": "hard",
+        "ticket_index": 2,
+        "description": "Route an account settings complaint",
+    },
+]
+
+TASK_BY_ID = {task["id"]: task for task in TASKS}
+
 @app.get("/")
 def home():
     return {"message": "Ticket Routing OpenEnv is running"}
@@ -35,7 +58,20 @@ def step(action: dict):
 @app.get("/tasks")
 def tasks():
     return {
-        "tasks": ["easy", "medium", "hard"],
+        "tasks": [
+            {
+                "id": task["id"],
+                "task_type": task["task_type"],
+                "description": task["description"],
+                "grader": {
+                    "endpoint": "/grader",
+                    "method": "POST",
+                    "expects": {"task_id": task["id"], "action": "<action_object>"},
+                    "score_range": {"min_exclusive": 0.0, "max_exclusive": 1.0},
+                },
+            }
+            for task in TASKS
+        ],
         "action_schema": {
             "department": ["billing", "technical", "account", "general"],
             "priority": ["low", "medium", "high"],
@@ -45,12 +81,19 @@ def tasks():
 
 
 @app.post("/grader")
-def grader(action: dict):
-    # For simplicity, evaluate on first ticket
-    correct = tickets[0]
+def grader(payload: dict):
+    # Support both payload styles:
+    # 1) {"task_id": "...", "action": {...}}
+    # 2) {"department": "...", "priority": "...", "escalation": "..."}
+    task_id = payload.get("task_id")
+    action = payload.get("action") if isinstance(payload.get("action"), dict) else payload
+
+    task = TASK_BY_ID.get(task_id) if task_id else TASKS[0]
+    correct = tickets[task["ticket_index"]]
     score = grade(action, correct)
 
     return {
+        "task_id": task["id"],
         "score": score
     }
 
