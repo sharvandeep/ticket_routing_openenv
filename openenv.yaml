@@ -28,15 +28,30 @@ reward:
 tasks:
   - id: route_easy_chargeback
     description: Route a duplicate-charge billing complaint
+    grader:
+      endpoint: /grader
+      method: POST
 
   - id: route_easy_login
     description: Route a login/password complaint
+    grader:
+      endpoint: /grader
+      method: POST
 
   - id: route_medium_buffering
     description: Route a technical performance complaint
+    grader:
+      endpoint: /grader
+      method: POST
 
   - id: route_medium_email_update
     description: Route an email update complaint
+    grader:
+      endpoint: /grader
+      method: POST
 
   - id: route_hard_account_change
     description: Route an account settings complaint
+    grader:
+      endpoint: /grader
+      method: POST
