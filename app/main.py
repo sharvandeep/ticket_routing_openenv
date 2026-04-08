@@ -77,29 +77,15 @@ def tasks():
                 "id": task["id"],
                 "task_type": task["task_type"],
                 "description": task["description"],
-                "ticket_index": task["ticket_index"],
                 "grader": {
                     "endpoint": "/grader",
-                    "method": "POST",
-                    "expects": {
-                        "task_id": task["id"],
-                        "action": {
-                            "department": "billing",
-                            "priority": "high",
-                            "escalation": "yes",
-                        },
-                    },
-                    "score_range": {"min": 0.0, "max": 1.0},
-                },
+                    "method": "POST"
+                }
             }
             for task in TASKS
-        ],
-        "action_schema": {
-            "department": ["billing", "technical", "account", "general"],
-            "priority": ["low", "medium", "high"],
-            "escalation": ["yes", "no"],
-        },
+        ]
     }
+
 
 
 @app.post("/grader")
