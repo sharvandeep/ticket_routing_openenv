@@ -11,7 +11,7 @@ except Exception:
 # CONFIG (STRICT)
 # =========================
 
-ENV_URL = os.getenv("ENV_URL", "https://sharvandeep-ticket-routing-openenv.hf.space")
+ENV_URL = os.getenv("ENV_URL", "http://127.0.0.1:8000")
 
 # Required runtime configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
@@ -140,10 +140,10 @@ def run():
         total_reward += reward
         steps += 1
 
-        print(f"[STEP] step={steps} action={repr(action)} reward={reward} done={done} error=None", flush=True)
-
         done = result.get("done", True)
         data = result.get("observation", {})
+
+        print(f"[STEP] step={steps} action={repr(action)} reward={reward} done={done} error=None", flush=True)
 
     raw_score = total_reward / steps if steps > 0 else 0.0
     score = 0.05 + (raw_score * 0.90)

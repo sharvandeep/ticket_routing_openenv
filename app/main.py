@@ -101,8 +101,6 @@ def step(action: dict):
 
 @app.get("/tasks")
 def tasks(request: Request):
-    # Some validators expect {"tasks": [...]}, others expect a raw list.
-    # Default to the object form, but allow `?format=list` for the raw list.
     tasks_list = [
         {
             "id": task["id"],
@@ -128,7 +126,6 @@ def tasks(request: Request):
                     }
                 ],
             ),
-            # Alternate linking patterns seen in some task validators
             "grader_id": task.get("grader_id", "default"),
             "grader_ids": task.get("grader_ids", ["default"]),
         }
@@ -144,7 +141,6 @@ def tasks(request: Request):
 @app.get("/grader")
 def grader_get():
     return {"detail": "Use POST /grader with payload {task_id, action}."}
-
 
 
 @app.post("/grader")

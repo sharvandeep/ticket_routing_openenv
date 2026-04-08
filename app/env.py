@@ -17,6 +17,9 @@ class TicketEnv:
 
     # Current state
     def state(self):
+        if self.current_ticket is None:
+            self.reset()
+
         return {
             "ticket_text": self.current_ticket["text"],
             "task_type": self.get_task_type()
@@ -24,20 +27,23 @@ class TicketEnv:
 
     # Agent takes action
     def step(self, action):
+        if self.current_ticket is None:
+            self.reset()
+
         correct = self.current_ticket
 
         reward = 0.0
 
         # Check department
-        if action["department"] == correct["department"]:
+        if action.get("department") == correct["department"]:
             reward += 0.4
 
         # Check priority
-        if action["priority"] == correct["priority"]:
+        if action.get("priority") == correct["priority"]:
             reward += 0.3
 
         # Check escalation
-        if action["escalation"] == correct["escalation"]:
+        if action.get("escalation") == correct["escalation"]:
             reward += 0.3
 
         # Move to next ticket
