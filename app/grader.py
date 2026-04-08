@@ -1,5 +1,10 @@
 def grade(action, correct):
-    # Keep scores strictly within (0, 1) for evaluator compatibility.
+    """
+    Returns a deterministic score in [0.0, 1.0].
+    +0.4 for department
+    +0.3 for priority
+    +0.3 for escalation
+    """
     score = 0.0
 
     if action.get("department") == correct.get("department"):
@@ -11,6 +16,4 @@ def grade(action, correct):
     if action.get("escalation") == correct.get("escalation"):
         score += 0.3
 
-    # Map [0.0, 1.0] -> [0.05, 0.95] to avoid exact boundary values.
-    bounded_score = 0.05 + (score * 0.90)
-    return round(bounded_score, 4)
+    return round(min(max(score, 0.0), 1.0), 4)
