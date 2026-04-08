@@ -11,7 +11,7 @@ except Exception:
 # CONFIG (STRICT)
 # =========================
 
-ENV_URL = os.getenv("ENV_URL", "http://127.0.0.1:8000")
+ENV_URL = os.getenv("ENV_URL", "https://sharvandeep-ticket-routing-openenv.hf.space")
 
 # Required runtime configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
