@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from app.env import TicketEnv
 from app.grader import grade
 from app.data import tickets
@@ -100,9 +100,10 @@ def step(action: dict):
 
 
 @app.get("/tasks")
-def tasks():
-    # Return a plain list (not {"tasks": [...]}) for maximum validator compatibility.
-    return [
+def tasks(request: Request):
+    # Some validators expect {"tasks": [...]}, others expect a raw list.
+    # Default to the object form, but allow `?format=list` for the raw list.
+    tasks_list = [
         {
             "id": task["id"],
             "name": task.get("name", task["id"]),
@@ -111,7 +112,6 @@ def tasks():
             "max_steps": task.get("max_steps", 1),
             "reward_range": task.get("reward_range", [0.0, 1.0]),
             "description": task["description"],
-            # Provide both common field shapes used by different validators.
             "grader": task.get(
                 "grader",
                 {
@@ -128,9 +128,17 @@ def tasks():
                     }
                 ],
             ),
+            # Alternate linking patterns seen in some task validators
+            "grader_id": task.get("grader_id", "default"),
+            "grader_ids": task.get("grader_ids", ["default"]),
         }
         for task in TASKS
     ]
+
+    if request.query_params.get("format") == "list":
+        return tasks_list
+
+    return {"tasks": tasks_list}
 
 
 @app.get("/grader")
