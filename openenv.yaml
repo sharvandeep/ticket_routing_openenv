@@ -16,6 +16,9 @@ tasks:
     grader:
       endpoint: /grader
       method: POST
+    graders:
+      - endpoint: /grader
+        method: POST
 
   - id: route_easy_login
     name: "Route: Login/password"
@@ -26,6 +29,9 @@ tasks:
     grader:
       endpoint: /grader
       method: POST
+    graders:
+      - endpoint: /grader
+        method: POST
 
   - id: route_medium_buffering
     name: "Route: Video buffering"
@@ -36,6 +42,9 @@ tasks:
     grader:
       endpoint: /grader
       method: POST
+    graders:
+      - endpoint: /grader
+        method: POST
 
   - id: route_medium_email_update
     name: "Route: Email update"
@@ -46,6 +55,9 @@ tasks:
     grader:
       endpoint: /grader
       method: POST
+    graders:
+      - endpoint: /grader
+        method: POST
 
   - id: route_hard_account_change
     name: "Route: Account change"
@@ -56,6 +68,9 @@ tasks:
     grader:
       endpoint: /grader
       method: POST
+    graders:
+      - endpoint: /grader
+        method: POST
 
 action_space:
   type: object

@@ -18,6 +18,7 @@ TASKS = [
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
         "grader": {"endpoint": "/grader", "method": "POST"},
+        "graders": [{"endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_easy_login",
@@ -29,6 +30,7 @@ TASKS = [
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
         "grader": {"endpoint": "/grader", "method": "POST"},
+        "graders": [{"endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_medium_buffering",
@@ -40,6 +42,7 @@ TASKS = [
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
         "grader": {"endpoint": "/grader", "method": "POST"},
+        "graders": [{"endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_medium_email_update",
@@ -51,6 +54,7 @@ TASKS = [
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
         "grader": {"endpoint": "/grader", "method": "POST"},
+        "graders": [{"endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_hard_account_change",
@@ -62,6 +66,7 @@ TASKS = [
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
         "grader": {"endpoint": "/grader", "method": "POST"},
+        "graders": [{"endpoint": "/grader", "method": "POST"}],
     },
 ]
 
@@ -113,10 +118,24 @@ def tasks():
                         "method": "POST",
                     },
                 ),
+                "graders": task.get(
+                    "graders",
+                    [
+                        {
+                            "endpoint": "/grader",
+                            "method": "POST",
+                        }
+                    ],
+                ),
             }
             for task in TASKS
         ]
     }
+
+
+@app.get("/grader")
+def grader_get():
+    return {"detail": "Use POST /grader with payload {task_id, action}."}
 
 
 
