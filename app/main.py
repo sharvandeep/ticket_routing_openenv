@@ -101,36 +101,36 @@ def step(action: dict):
 
 @app.get("/tasks")
 def tasks():
-    return {
-        "tasks": [
-            {
-                "id": task["id"],
-                "name": task.get("name", task["id"]),
-                "task_type": task["task_type"],
-                "difficulty": task.get("difficulty", task["task_type"]),
-                "max_steps": task.get("max_steps", 1),
-                "reward_range": task.get("reward_range", [0.0, 1.0]),
-                "description": task["description"],
-                "grader": task.get(
-                    "grader",
+    # Return a plain list (not {"tasks": [...]}) for maximum validator compatibility.
+    return [
+        {
+            "id": task["id"],
+            "name": task.get("name", task["id"]),
+            "task_type": task["task_type"],
+            "difficulty": task.get("difficulty", task["task_type"]),
+            "max_steps": task.get("max_steps", 1),
+            "reward_range": task.get("reward_range", [0.0, 1.0]),
+            "description": task["description"],
+            # Provide both common field shapes used by different validators.
+            "grader": task.get(
+                "grader",
+                {
+                    "endpoint": "/grader",
+                    "method": "POST",
+                },
+            ),
+            "graders": task.get(
+                "graders",
+                [
                     {
                         "endpoint": "/grader",
                         "method": "POST",
-                    },
-                ),
-                "graders": task.get(
-                    "graders",
-                    [
-                        {
-                            "endpoint": "/grader",
-                            "method": "POST",
-                        }
-                    ],
-                ),
-            }
-            for task in TASKS
-        ]
-    }
+                    }
+                ],
+            ),
+        }
+        for task in TASKS
+    ]
 
 
 @app.get("/grader")
