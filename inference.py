@@ -1,7 +1,11 @@
 import os
 import json
 import requests
-from openai import OpenAI
+
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
 # =========================
 # CONFIG (STRICT)
@@ -14,7 +18,7 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN) if (OpenAI and HF_TOKEN) else None
 
 # =========================
 # NORMALIZATION
@@ -52,24 +56,25 @@ Return ONLY JSON.
 Ticket: {ticket_text}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
-        )
+    if client is not None:
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+            )
 
-        content = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content.strip()
 
-        start = content.find("{")
-        end = content.rfind("}") + 1
+            start = content.find("{")
+            end = content.rfind("}") + 1
 
-        if start != -1 and end != -1:
-            return json.loads(content[start:end])
+            if start != -1 and end != -1:
+                return json.loads(content[start:end])
 
-    except Exception:
-        # Fall back to deterministic rules when LLM call fails.
-        pass
+        except Exception:
+            # Fall back to deterministic rules when LLM call fails.
+            pass
 
     # fallback
     text = ticket_text.lower()
