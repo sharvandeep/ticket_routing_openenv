@@ -132,10 +132,11 @@ def tasks(request: Request):
         for task in TASKS
     ]
 
-    if request.query_params.get("format") == "list":
-        return tasks_list
+    if request.query_params.get("format") == "object":
+        return {"tasks": tasks_list}
 
-    return {"tasks": tasks_list}
+    # Default to raw list because some validators parse /tasks strictly as list.
+    return tasks_list
 
 
 @app.get("/grader")
