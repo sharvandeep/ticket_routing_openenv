@@ -19,6 +19,16 @@ MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN) if (OpenAI and HF_TOKEN) else None
+EPSILON = 0.0001
+
+
+def strict_unit_interval(value):
+    value = float(value)
+    if value <= 0.0:
+        return EPSILON
+    if value >= 1.0:
+        return 1.0 - EPSILON
+    return value
 
 # =========================
 # NORMALIZATION
@@ -128,13 +138,19 @@ def run_single_task(task):
         data = response.json()
     except Exception as e:
         print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
-        print(f"[END] task={task_id} success=False steps=0 score=0.0 rewards=0.0 error={repr(str(e))}", flush=True)
-        return 0.0
+        print(
+            f"[END] task={task_id} success=False steps=0 score={EPSILON} rewards={EPSILON} error={repr(str(e))}",
+            flush=True,
+        )
+        return EPSILON
 
     if not isinstance(data, dict) or "ticket_text" not in data:
         print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
-        print(f"[END] task={task_id} success=False steps=0 score=0.0 rewards=0.0 error='invalid reset response'", flush=True)
-        return 0.0
+        print(
+            f"[END] task={task_id} success=False steps=0 score={EPSILON} rewards={EPSILON} error='invalid reset response'",
+            flush=True,
+        )
+        return EPSILON
 
     print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
 
@@ -146,11 +162,14 @@ def run_single_task(task):
         step_response = requests.post(f"{ENV_URL}/step", json=action, timeout=10)
         result = step_response.json()
     except Exception as e:
-        print(f"[STEP] task={task_id} step=1 action={repr(action)} reward=0.0 done=True error={repr(str(e))}", flush=True)
-        print(f"[END] task={task_id} success=False steps=1 score=0.0 rewards=0.0", flush=True)
-        return 0.0
+        print(
+            f"[STEP] task={task_id} step=1 action={repr(action)} reward={EPSILON} done=True error={repr(str(e))}",
+            flush=True,
+        )
+        print(f"[END] task={task_id} success=False steps=1 score={EPSILON} rewards={EPSILON}", flush=True)
+        return EPSILON
 
-    reward = float(result.get("reward", 0.0) or 0.0)
+    reward = strict_unit_interval(result.get("reward", EPSILON) or EPSILON)
     done = bool(result.get("done", True))
 
     score = reward
@@ -161,9 +180,11 @@ def run_single_task(task):
             timeout=10,
         )
         grade_payload = grade_response.json()
-        score = float(grade_payload.get("score", score) or score)
+        score = strict_unit_interval(grade_payload.get("score", score) or score)
     except Exception:
         pass
+
+    score = strict_unit_interval(score)
 
     success = score > 0.5
 

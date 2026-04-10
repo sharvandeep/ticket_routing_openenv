@@ -1,5 +1,7 @@
 from app.data import tickets
 
+EPSILON = 0.0001
+
 class TicketEnv:
     def __init__(self):
         self.current_index = 0
@@ -53,6 +55,11 @@ class TicketEnv:
         # Check escalation
         if action.get("escalation") == correct["escalation"]:
             reward += 0.3
+
+        if reward <= 0.0:
+            reward = EPSILON
+        elif reward >= 1.0:
+            reward = 1.0 - EPSILON
 
         if self.single_task_mode:
             # In task mode, each task is a one-step episode.
