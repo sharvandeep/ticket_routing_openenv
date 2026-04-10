@@ -25,10 +25,12 @@ tasks:
     grader_id: default
     grader_ids: [default]
     grader:
+      id: default
       endpoint: /grader
       method: POST
     graders:
-      - endpoint: /grader
+      - id: default
+        endpoint: /grader
         method: POST
 
   - id: route_easy_login
@@ -40,10 +42,12 @@ tasks:
     grader_id: default
     grader_ids: [default]
     grader:
+      id: default
       endpoint: /grader
       method: POST
     graders:
-      - endpoint: /grader
+      - id: default
+        endpoint: /grader
         method: POST
 
   - id: route_medium_buffering
@@ -55,10 +59,12 @@ tasks:
     grader_id: default
     grader_ids: [default]
     grader:
+      id: default
       endpoint: /grader
       method: POST
     graders:
-      - endpoint: /grader
+      - id: default
+        endpoint: /grader
         method: POST
 
   - id: route_medium_email_update
@@ -70,10 +76,12 @@ tasks:
     grader_id: default
     grader_ids: [default]
     grader:
+      id: default
       endpoint: /grader
       method: POST
     graders:
-      - endpoint: /grader
+      - id: default
+        endpoint: /grader
         method: POST
 
   - id: route_hard_account_change
@@ -85,10 +93,12 @@ tasks:
     grader_id: default
     grader_ids: [default]
     grader:
+      id: default
       endpoint: /grader
       method: POST
     graders:
-      - endpoint: /grader
+      - id: default
+        endpoint: /grader
         method: POST
 
 action_space:

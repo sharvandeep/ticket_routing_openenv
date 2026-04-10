@@ -4,10 +4,18 @@ class TicketEnv:
     def __init__(self):
         self.current_index = 0
         self.current_ticket = None
+        self.single_task_mode = False
 
     # Start new episode
-    def reset(self):
-        self.current_index = 0
+    def reset(self, task_index=None):
+        if task_index is None:
+            self.current_index = 0
+            self.single_task_mode = False
+        else:
+            # Task mode: run exactly one ticket per episode.
+            self.current_index = max(0, min(int(task_index), len(tickets) - 1))
+            self.single_task_mode = True
+
         self.current_ticket = tickets[self.current_index]
 
         return {
@@ -46,12 +54,16 @@ class TicketEnv:
         if action.get("escalation") == correct["escalation"]:
             reward += 0.3
 
-        # Move to next ticket
-        self.current_index += 1
-        done = self.current_index >= len(tickets)
+        if self.single_task_mode:
+            # In task mode, each task is a one-step episode.
+            done = True
+        else:
+            # Sequential mode keeps compatibility with previous behavior.
+            self.current_index += 1
+            done = self.current_index >= len(tickets)
 
-        if not done:
-            self.current_ticket = tickets[self.current_index]
+            if not done:
+                self.current_ticket = tickets[self.current_index]
 
         return {
             "ticket_text": self.current_ticket["text"] if not done else None,

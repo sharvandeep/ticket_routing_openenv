@@ -17,8 +17,10 @@ TASKS = [
         "difficulty": "easy",
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
-        "grader": {"endpoint": "/grader", "method": "POST"},
-        "graders": [{"endpoint": "/grader", "method": "POST"}],
+        "grader_id": "default",
+        "grader_ids": ["default"],
+        "grader": {"id": "default", "endpoint": "/grader", "method": "POST"},
+        "graders": [{"id": "default", "endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_easy_login",
@@ -29,8 +31,10 @@ TASKS = [
         "difficulty": "easy",
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
-        "grader": {"endpoint": "/grader", "method": "POST"},
-        "graders": [{"endpoint": "/grader", "method": "POST"}],
+        "grader_id": "default",
+        "grader_ids": ["default"],
+        "grader": {"id": "default", "endpoint": "/grader", "method": "POST"},
+        "graders": [{"id": "default", "endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_medium_buffering",
@@ -41,8 +45,10 @@ TASKS = [
         "difficulty": "medium",
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
-        "grader": {"endpoint": "/grader", "method": "POST"},
-        "graders": [{"endpoint": "/grader", "method": "POST"}],
+        "grader_id": "default",
+        "grader_ids": ["default"],
+        "grader": {"id": "default", "endpoint": "/grader", "method": "POST"},
+        "graders": [{"id": "default", "endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_medium_email_update",
@@ -53,8 +59,10 @@ TASKS = [
         "difficulty": "medium",
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
-        "grader": {"endpoint": "/grader", "method": "POST"},
-        "graders": [{"endpoint": "/grader", "method": "POST"}],
+        "grader_id": "default",
+        "grader_ids": ["default"],
+        "grader": {"id": "default", "endpoint": "/grader", "method": "POST"},
+        "graders": [{"id": "default", "endpoint": "/grader", "method": "POST"}],
     },
     {
         "id": "route_hard_account_change",
@@ -65,8 +73,10 @@ TASKS = [
         "difficulty": "hard",
         "max_steps": 1,
         "reward_range": [0.0, 1.0],
-        "grader": {"endpoint": "/grader", "method": "POST"},
-        "graders": [{"endpoint": "/grader", "method": "POST"}],
+        "grader_id": "default",
+        "grader_ids": ["default"],
+        "grader": {"id": "default", "endpoint": "/grader", "method": "POST"},
+        "graders": [{"id": "default", "endpoint": "/grader", "method": "POST"}],
     },
 ]
 
@@ -79,8 +89,17 @@ def home():
 
 
 @app.post("/reset")
-def reset():
-    return env.reset()
+def reset(payload: dict | None = None):
+    task_id = (payload or {}).get("task_id")
+
+    if task_id is None:
+        return env.reset()
+
+    task = TASK_BY_ID.get(task_id)
+    if task is None:
+        raise HTTPException(status_code=400, detail="invalid task_id")
+
+    return env.reset(task_index=task["ticket_index"])
 
 
 @app.get("/state")

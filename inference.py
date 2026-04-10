@@ -93,63 +93,105 @@ Ticket: {ticket_text}
 # RUN
 # =========================
 
-def run():
-    total_reward = 0
-    steps = 0
-    task_name = "unknown"
+def fetch_tasks():
+    urls = [f"{ENV_URL}/tasks?format=object", f"{ENV_URL}/tasks"]
 
-    # RESET
+    for url in urls:
+        try:
+            response = requests.get(url, timeout=10)
+            payload = response.json()
+
+            if isinstance(payload, dict) and isinstance(payload.get("tasks"), list):
+                return payload["tasks"]
+            if isinstance(payload, list):
+                return payload
+        except Exception:
+            pass
+
+    return []
+
+
+def has_grader(task):
+    return bool(
+        task.get("graders")
+        or task.get("grader")
+        or task.get("grader_id")
+        or task.get("grader_ids")
+    )
+
+
+def run_single_task(task):
+    task_id = task.get("id", "unknown")
+
     try:
-        response = requests.post(f"{ENV_URL}/reset", timeout=10)
+        response = requests.post(f"{ENV_URL}/reset", json={"task_id": task_id}, timeout=10)
         data = response.json()
     except Exception as e:
-        print("Reset failed:", e, flush=True)
-        return
+        print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
+        print(f"[END] task={task_id} success=False steps=0 score=0.0 rewards=0.0 error={repr(str(e))}", flush=True)
+        return 0.0
 
     if not isinstance(data, dict) or "ticket_text" not in data:
-        print("Invalid reset response:", data, flush=True)
-        return
+        print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
+        print(f"[END] task={task_id} success=False steps=0 score=0.0 rewards=0.0 error='invalid reset response'", flush=True)
+        return 0.0
 
-    task_name = data.get("task_type", "unknown")
+    print(f"[START] task={task_id} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
 
-    # START
-    print(f"[START] task={task_name} env=ticket_routing_openenv model={MODEL_NAME}", flush=True)
+    ticket_text = data.get("ticket_text", "")
+    raw_action = get_action(ticket_text)
+    action = normalize_action(raw_action)
 
-    done = False
+    try:
+        step_response = requests.post(f"{ENV_URL}/step", json=action, timeout=10)
+        result = step_response.json()
+    except Exception as e:
+        print(f"[STEP] task={task_id} step=1 action={repr(action)} reward=0.0 done=True error={repr(str(e))}", flush=True)
+        print(f"[END] task={task_id} success=False steps=1 score=0.0 rewards=0.0", flush=True)
+        return 0.0
 
-    while not done:
-        try:
-            ticket_text = data.get("ticket_text")
+    reward = float(result.get("reward", 0.0) or 0.0)
+    done = bool(result.get("done", True))
 
-            raw_action = get_action(ticket_text)
-            action = normalize_action(raw_action)
-
-            step_response = requests.post(
-                f"{ENV_URL}/step",
-                json=action,
-                timeout=10
-            )
-
-            result = step_response.json()
-
-        except Exception as e:
-            print("Step failed:", e, flush=True)
-            break
-
-        reward = result.get("reward", 0)
-        total_reward += reward
-        steps += 1
-
-        done = result.get("done", True)
-        data = result.get("observation", {})
-
-        print(f"[STEP] step={steps} action={repr(action)} reward={reward} done={done} error=None", flush=True)
-
-    raw_score = total_reward / steps if steps > 0 else 0.0
-    score = 0.05 + (raw_score * 0.90)
+    score = reward
+    try:
+        grade_response = requests.post(
+            f"{ENV_URL}/grader",
+            json={"task_id": task_id, "action": action},
+            timeout=10,
+        )
+        grade_payload = grade_response.json()
+        score = float(grade_payload.get("score", score) or score)
+    except Exception:
+        pass
 
     success = score > 0.5
-    print(f"[END] success={success} steps={steps} score={score} rewards={total_reward}", flush=True)
+
+    print(f"[STEP] task={task_id} step=1 action={repr(action)} reward={reward} done={done} error=None", flush=True)
+    print(f"[END] task={task_id} success={success} steps=1 score={score} rewards={reward}", flush=True)
+
+    return score
+
+
+def run():
+    tasks = fetch_tasks()
+
+    if not tasks:
+        print("No tasks found from /tasks", flush=True)
+        return
+
+    graded_tasks = [task for task in tasks if isinstance(task, dict) and has_grader(task)]
+    selected_tasks = graded_tasks[:3] if len(graded_tasks) >= 3 else tasks[:3]
+
+    total_score = 0.0
+
+    for task in selected_tasks:
+        if not isinstance(task, dict):
+            continue
+        total_score += run_single_task(task)
+
+    avg_score = total_score / max(len(selected_tasks), 1)
+    print(f"[SUMMARY] tasks_run={len(selected_tasks)} avg_score={avg_score}", flush=True)
 
 # ENTRY
 if __name__ == "__main__":
